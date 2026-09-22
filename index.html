@@ -11,14 +11,12 @@
 <body>
 <main class="game" aria-labelledby="game-title">
 <h1 id="game-title">🏏 JOY CRICKET WORLD</h1>
-<div class="score" aria-label="Game score">
-<div>Runs<b id="runs" aria-live="polite">0</b></div><div>Wickets<b id="wickets" aria-live="polite">0/3</b></div><div>Target<b id="target">20</b></div><div>Level<b id="level">1</b></div>
-</div>
+<div class="score" aria-label="Game score"><div>Runs<b id="runs" aria-live="polite">0</b></div><div>Wickets<b id="wickets" aria-live="polite">0/3</b></div><div>Target<b id="target">20</b></div><div>Level<b id="level">1</b></div></div>
 <div class="stage"><canvas id="canvas" width="420" height="640" role="img" aria-label="Animated cricket pitch showing the bowler, ball and batsman"></canvas><div class="timing" aria-label="Swing timing guide"><div>SWING TIMING</div><div>EARLY · GOOD · PERFECT · GOOD · LATE</div><div class="bar" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div><div class="marker" id="marker"></div></div></div>
-<div class="message" id="message" role="status" aria-live="polite">Ball coming. Tap a direction near the contact zone.</div>
+<div class="message" id="message" role="status" aria-live="polite">Ball coming. Tap when the ball reaches the yellow circle.</div>
 <div class="directions" aria-label="Shot direction controls"><button type="button" data-shot="left" aria-label="Play front left shot">↙ Front Left</button><button type="button" data-shot="straight" aria-label="Play straight shot">⬇ Straight</button><button type="button" data-shot="right" aria-label="Play front right shot">↘ Front Right</button></div>
 <div class="bottom"><button type="button" class="reset" id="reset">↻ Reset Game</button></div>
-<div class="help">Tap a direction when the ball is near the yellow contact circle. PC: Left Arrow, Down Arrow, Right Arrow.<br>No separate HIT button is required.</div>
+<div class="help">Choose a direction only when the ball is near the yellow contact circle. PC: Left Arrow, Down Arrow, Right Arrow.</div>
 </main>
 <script>
 'use strict';
@@ -29,14 +27,14 @@ let game=initialGame();
 function message(text){$('message').textContent=text}
 function score(){$('runs').textContent=game.runs;$('wickets').textContent=game.wickets+'/3';$('target').textContent=game.target;$('level').textContent=game.level}
 function speed(){return speeds[Math.min(game.level,5)]||340}
-function startDelivery(){if(game.over)return;game.phase='incoming';game.hitChecked=false;game.impact=null;game.next=0;game.ball={x:CONTACT.x,y:95,r:10};game.swing={active:false,progress:0,direction:game.direction};message('Ball coming. Tap a direction near the contact zone.');clearSelection()}
 function clearSelection(){document.querySelectorAll('[data-shot]').forEach(b=>b.classList.remove('selected'))}
+function startDelivery(){if(game.over)return;game.phase='incoming';game.hitChecked=false;game.impact=null;game.next=0;game.ball={x:CONTACT.x,y:95,r:10};game.swing={active:false,progress:0,direction:game.direction};clearSelection();message('Ball coming. Tap when it reaches the yellow circle.')}
 function selectShot(direction){if(game.phase!=='incoming'||game.hitChecked||game.over)return;game.direction=direction;game.swing={active:true,progress:0,direction};document.querySelectorAll('[data-shot]').forEach(b=>b.classList.toggle('selected',b.dataset.shot===direction));resolveShot()}
 document.querySelectorAll('[data-shot]').forEach(b=>b.addEventListener('click',()=>selectShot(b.dataset.shot)));
 document.addEventListener('keydown',e=>{const map={ArrowLeft:'left',ArrowDown:'straight',ArrowRight:'right'};if(map[e.key]){e.preventDefault();selectShot(map[e.key])}});
-$('reset').addEventListener('click',()=>{game=initialGame();score();startDelivery();message('Game reset. Ball coming. Tap near the contact zone.')});
+$('reset').addEventListener('click',()=>{game=initialGame();score();startDelivery()});
 function timing(){const d=game.ball.y-CONTACT.y;if(Math.abs(d)<=14)return'perfect';if(Math.abs(d)<=43)return'good';return d<0?'early':'late'}
-function resolveShot(){if(game.hitChecked)return;game.hitChecked=true;const distance=Math.hypot(game.ball.x-CONTACT.x,game.ball.y-CONTACT.y);if(distance>CONTACT.radius){game.wickets++;message('MISS! No runs.');finish(false);return}const result=timing();if(result==='perfect'){game.runs+=6;message('PERFECT HIT! +6 RUNS');impact();finish(true)}else if(result==='good'){const runs=Math.random()<.5?2:4;game.runs+=runs;message('GOOD TIMING! +'+runs+' RUNS');impact();finish(true)}else{game.wickets++;message(result==='early'?'TOO EARLY! Wicket lost.':'TOO LATE! Wicket lost.');finish(false)}score()}
+function resolveShot(){if(game.hitChecked)return;game.hitChecked=true;const result=timing();if(result==='perfect'){game.runs+=6;message('PERFECT HIT! +6 RUNS');impact();finish(true)}else if(result==='good'){const runs=Math.random()<.5?2:4;game.runs+=runs;message('GOOD TIMING! +'+runs+' RUNS');impact();finish(true)}else{game.wickets++;message(result==='early'?'TOO EARLY! Wicket lost.':'TOO LATE! Wicket lost.');finish(false)}score()}
 function impact(){game.impact={x:game.ball.x,y:game.ball.y,time:performance.now()}}
 function completeLevel(){game.level++;game.target+=20;message('LEVEL COMPLETE! Level '+game.level+' — bowling is faster.');score()}
 function finish(success){game.phase=success?'outgoing':'missed';if(game.runs>=game.target)completeLevel();if(game.wickets>=3){game.over=true;game.phase='over';message('INNINGS OVER! Final score: '+game.runs+'. Press Reset Game to play again.');return}game.next=success?1000:1200}
@@ -47,7 +45,7 @@ function drawBatsman(){const x=CONTACT.x,y=558;ctx.save();ctx.translate(x,y);ctx
 function drawBall(){const b=game.ball;ctx.save();ctx.translate(b.x,b.y);ctx.fillStyle='#0003';ctx.beginPath();ctx.ellipse(5,7,13,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d62828';ctx.beginPath();ctx.arc(0,0,b.r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(0,0,6,-.7,.7);ctx.stroke();ctx.restore()}
 function drawImpact(){if(!game.impact)return;const p=Math.min(1,(performance.now()-game.impact.time)/420);ctx.save();ctx.globalAlpha=1-p;ctx.strokeStyle='#ffe066';ctx.lineWidth=5;ctx.beginPath();ctx.arc(game.impact.x,game.impact.y,12+p*34,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold 18px Arial';ctx.textAlign='center';ctx.fillText('CONTACT!',game.impact.x,game.impact.y-25);ctx.restore()}
 function draw(){ctx.clearRect(0,0,W,H);drawPitch();drawBatsman();drawBall();drawImpact()}
-function update(dt){if(game.over)return;if(game.phase==='incoming'){game.ball.y+=speed()*dt/1000;if(game.ball.y>CONTACT.y+75&&!game.hitChecked){game.hitChecked=true;game.wickets++;message('MISS! The ball passed the bat.');finish(false);score()}}else if(game.phase==='outgoing'){const dx=game.direction==='left'?-1.8:game.direction==='right'?1.8:0;game.ball.x+=dx*speed()*dt/1000;game.ball.y-=speed()*1.2*dt/1000}else if(game.phase==='missed'){game.ball.y+=speed()*dt/1000}if(game.next>0){game.next-=dt;if(game.next<=0&&!game.over)startDelivery()}const pct=Math.max(0,Math.min(100,(game.ball.y/CONTACT.y)*100));$('marker').style.setProperty('--marker',pct+'%')}
+function update(dt){if(game.over)return;if(game.swing.active){game.swing.progress=Math.min(1,game.swing.progress+dt/260);if(game.swing.progress>=1&&game.phase!=='incoming')game.swing.active=false}if(game.phase==='incoming'){game.ball.y+=speed()*dt/1000;if(game.ball.y>CONTACT.y+75&&!game.hitChecked){game.hitChecked=true;game.wickets++;message('MISS! The ball passed the bat.');finish(false);score()}}else if(game.phase==='outgoing'){const dx=game.direction==='left'?-1.8:game.direction==='right'?1.8:0;game.ball.x+=dx*speed()*dt/1000;game.ball.y-=speed()*1.2*dt/1000}else if(game.phase==='missed'){game.ball.y+=speed()*dt/1000}if(game.next>0){game.next-=dt;if(game.next<=0&&!game.over)startDelivery()}const pct=Math.max(0,Math.min(100,(game.ball.y/CONTACT.y)*100));$('marker').style.setProperty('--marker',pct+'%')}
 function loop(now){if(!game.last)game.last=now;const dt=Math.min(40,now-game.last);game.last=now;update(dt);draw();requestAnimationFrame(loop)}
 score();startDelivery();requestAnimationFrame(loop);
 </script>
